@@ -8,13 +8,46 @@
 
 import random
 import matplotlib.pyplot as plt
+import argparse
+
+
 dane = []
-
-
-
 rozmiar=20000
 T=[None] * rozmiar
 licznik=0
+
+
+def Main():
+    parser = argparse.ArgumentParser(description = "Tablica z dostepem rozproszonym (DHT)\n Example use: -slowo Adam insert -p2", prog = "DHT")
+    group_0 = parser.add_mutually_exclusive_group(required=True)
+    group_0.add_argument("-slowo",  help = "Prosze podac dowolne slowo",  type= str)
+    group_0.add_argument("-avr",  help = "Policz srednia ilosc kolizji przy wstawianiu 1000 elementow do tablicy 5000, 7000 i 9000 elementowej", action = "store_true")
+
+
+    parser_parent = argparse.ArgumentParser(add_help=False)
+    group_1 = parser_parent.add_mutually_exclusive_group(required=True)
+    group_1.add_argument("-o", help = "Uzyj adresowania otwartego", action='store_const', const='open')
+    group_1.add_argument("-p", help = "Uzyj podwojnego rozpraszania", action='store_const', const='podwojne')
+    group_2 = parser_parent.add_mutually_exclusive_group(required=True)
+    group_2.add_argument("-1", help = "Uzyj funkcji haszujacej 1", action='store_const', const='hash_1')
+    group_2.add_argument("-2", help = "Uzyj funkcji haszujacej 2", action='store_const', const='hash_2')
+
+    subparsers = parser.add_subparsers(help='sub-command help', dest ="i/s",)
+    parser_open = subparsers.add_parser('insert', help = "Wstawie elementu w tablicy", parents = [parser_parent])
+    parser_search = subparsers.add_parser('search', help = "Wyszukiwanie elementu w tablicy", parents = [parser_parent])
+
+    args= vars(parser.parse_args())
+
+    opcje = [args['avr'] or args['slowo'], args['i/s'], args['1'] or args['2'], args['o'] or args['p']]
+
+    def output(arg0,arg1,arg2,arg3):
+        if arg0 == True:
+            print(srednia(eval(arg2), eval('hash_{}_{}'.format(arg1, arg3))))
+        else:
+            print(eval('hash_{}_{}'.format(arg1,arg3))(T, arg0, eval(arg2)))
+
+    output(*opcje)
+
 
 def hash_1(s):      #pierwsza funkcja haszujaca
     ascii=0
@@ -64,7 +97,7 @@ def hash_search_open(T, s, funkcja_h):      #szukanie przy adresowaniu otwartym 
             i += 1
     return None
 
-def hash_podwojne_insert(T, s, funkcja_h):
+def hash_insert_podwojne(T, s, funkcja_h):
     global licznik
     key = funkcja_h(s) % 20000
     while T[key] != None:
@@ -74,7 +107,7 @@ def hash_podwojne_insert(T, s, funkcja_h):
     return key
 
 
-def hash_podwojne_search(T, s, funkcja_h):
+def hash_search_podwojne(T, s, funkcja_h):
     key = funkcja_h(s) % 20000
     while T[key] != None:
         if T[key] == s:
@@ -136,137 +169,8 @@ def zeruj():    #funkcja zerujaca glowna tablice
 def ilosc():    #funkcja liczaca ilosc elementow w tablicy
     return (len([x for x in T if x is not None]))
 
-def menu_main():
-    menu = {}
-    menu['1']="Wstaw element poprzez sondowanie liniowe"
-    menu['2']="Wstaw element poprzez podwojne rozpraszanie"
-    menu['3']="Wyszukaj element poprzez sondowanie liniowe"
-    menu['4']="Wyszukaj element poprzez podwojne rozpraszanie"
-    menu['5']="Policz srednia ilosc kolizji przy wstawianiu 1000 elementow do tablicy 5000, 7000 i 9000 elementowej"
-    menu['6']="Wyczysc tablice"
-    menu['7']="Wyjscie z programu"
-    while True:
-        wybor=menu.keys()
-        print("Obecna ilosc elementow w tablicy:",  end = " ")
-        print(ilosc())
-        for n in wybor:
-            print(n, menu[n])
 
-        selection=input("\nProsze wybrac opcje:")
-        if selection =='1':
-            print('Prosze podac slowo do wstawienia:', end = " ")
-            slowo = input()
-            print("")
-            menu_hashf(hash_insert_open, slowo)
-        elif selection == '2':
-            print('Prosze podac slowo do wstawienia:', end = " ")
-            slowo = input()
-            print("")
-            menu_hashf_p(hash_podwojne_insert, slowo)
-        elif selection == '3':
-            print('Prosze podac slowo do wyszukania:', end = " ")
-            slowo = input()
-            print("")
-            menu_hashf(hash_search_open, slowo)
-        elif selection == '4':
-            print('Prosze podac slowo do wyszukania:', end = " ")
-            slowo = input()
-            print("")
-            menu_hashf_p(hash_podwojne_search, slowo)
-        elif selection == '5':
-            zeruj()
-            menu_srednia()
-            pause()
-        elif selection == '6':
-            zeruj()
-        elif selection == '7':
-            break
-        else:
-            print("Wybor jest od 1 do 7!")
-
-def menu_hashf(opcja, slowo):
-    menu = {}
-    menu['1']="Uzyj funkcji haszujacej 1"
-    menu['2']="Uzyj funkcji haszujacej 2"
-    menu['3']="Wroc"
-    while True:
-        wybor=menu.keys()
-        for n in wybor:
-            print(n, menu[n])
-
-        selection=input("\nProsze wybrac opcje: ")
-        if selection =='1':
-            print("Miejsce w tablicy:", end = " ")
-            print(opcja(T, slowo, hash_1))
-            pause()
-            break
-        elif selection == '2':
-            print("Miejsce w tablicy:", end = " ")
-            print(opcja(T, slowo, hash_2))
-            pause()
-            break
-        elif selection == '3':
-            break
-        else:
-            print("Wybor od 1 do 3!")
-
-def menu_hashf_p(opcja, slowo):
-    menu = {}
-    menu['1']="Uzyj podwojnego rozpraszania dla funkcji 1"
-    menu['2']="Uzyj podwojnego rozpraszania dla funkcji 2"
-    menu['3']="Wroc"
-    while True:
-        wybor=menu.keys()
-        for n in wybor:
-            print(n, menu[n])
-
-        selection=input("\nProsze wybrac opcje: ")
-        if selection =='1':
-            print("Miejsce w tablicy:", end = " ")
-            print(opcja(T, slowo, hash_1))
-            pause()
-            break
-        elif selection == '2':
-            print("Miejsce w tablicy:", end = " ")
-            print(opcja(T, slowo, hash_2))
-            pause()
-            break
-        elif selection == '3':
-            break
-        else:
-            print("Wybor od 1 do 3!")
-
-
-def menu_srednia():
-    menu = {}
-    menu['1']="Uzyj sondowania liniowego i funkcji haszujacej 1"
-    menu['2']="Uzyj sondowania liniowego i funkcji haszujacej 2"
-    menu['3']="Uzyj podwojnego rozpraszania i funkcji haszujacej 1"
-    menu['4']="Uzyj podwojnego rozpraszania i funkcji haszujacej 2"
-    menu['5']="Wroc"
-    while True:
-        wybor=menu.keys()
-        for n in wybor:
-            print(n, menu[n])
-
-        selection=input("\nProsze wybrac opcje: ")
-        if selection =='1':
-            print(srednia(hash_1, hash_insert_open))
-            break
-        elif selection == '2':
-            print(srednia(hash_2, hash_insert_open))
-            break
-        elif selection == '3':
-            print(srednia(hash_1, hash_podwojne_insert))
-            break
-        elif selection == '4':
-            print(srednia(hash_2, hash_podwojne_insert))
-            break
-        elif selection == '5':
-            break
-        else:
-            print("Wybor od 1 do 3!")
-
-
-
-menu_main()
+if __name__== '__main__':
+    f= open('table.txt', 'w+')
+    Main()
+    f.writelines(str(T))
