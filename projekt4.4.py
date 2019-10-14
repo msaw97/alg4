@@ -7,22 +7,21 @@
 
 
 import random
-import matplotlib.pyplot as plt
 import argparse
-
 
 dane = []
 rozmiar=20000
 T=[None] * rozmiar
 licznik=0
 
-
 def Main():
-    parser = argparse.ArgumentParser(description = "Tablica z dostepem rozproszonym (DHT)\n Example use: -slowo Adam insert -p2", prog = "DHT")
+    """Command Line Interface"""
+    parser = argparse.ArgumentParser(description = "Tablica z dostepem rozproszonym (DHT).\n Example use: -slowo abrakadabra -QC insert -p2", prog = "DHT")
     group_0 = parser.add_mutually_exclusive_group(required=True)
     group_0.add_argument("-slowo",  help = "Prosze podac dowolne slowo",  type= str)
     group_0.add_argument("-avr",  help = "Policz srednia ilosc kolizji przy wstawianiu 1000 elementow do tablicy 5000, 7000 i 9000 elementowej", action = "store_true")
-
+    parser.add_argument("-Q", "--quantity", help = "Policz liczbe elementow w tablicy", action = "store_true")
+    parser.add_argument("-C", "--clear", help = "Najpierw wyczysc tablice", action = "store_true")
 
     parser_parent = argparse.ArgumentParser(add_help=False)
     group_1 = parser_parent.add_mutually_exclusive_group(required=True)
@@ -38,32 +37,45 @@ def Main():
 
     args= vars(parser.parse_args())
 
-    opcje = [args['avr'] or args['slowo'], args['i/s'], args['1'] or args['2'], args['o'] or args['p']]
+    opcje = [args['avr'] or args['slowo'], args['i/s'], args['1'] or args['2'], args['o'] or args['p'], args['clear'], args['quantity']]
 
-    def output(arg0,arg1,arg2,arg3):
+    def output(arg0,arg1,arg2,arg3,arg4,arg5):
+        #print(arg0,arg1,arg2,arg3,arg4,arg5)
         if arg0 == True:
-            print(srednia(eval(arg2), eval('hash_{}_{}'.format(arg1, arg3))))
+            print(srednia(eval(arg2), globals()[f'hash_{arg1}_{arg3}']))
+            if arg5 == True:
+                print("Aktualna ilosc elementow w tablicy:", end =" ")
+                print(ilosc())
         else:
-            print(eval('hash_{}_{}'.format(arg1,arg3))(T, arg0, eval(arg2)))
+            if arg4 == True:
+                zeruj()
+            print("Miejsce elementu w tablicy:", end =" ")
+            print(globals()[f'hash_{arg1}_{arg3}'](T, arg0, eval(arg2)))
+            if arg5 == True:
+                print("Aktualna ilosc elementow w tablicy:", end =" ")
+                print(ilosc())
 
     output(*opcje)
 
 
-def hash_1(s):      #pierwsza funkcja haszujaca
+def hash_1(s):
+    """pierwsza funkcja haszujaca"""
     ascii=0
     for i in range(len(s)):
         ascii += ord(s[i])
     ascii=ascii%rozmiar
     return(ascii)
 
-def hash_2(s):      #druga funkcja haszujaca
+def hash_2(s):
+    """druga funkcja haszujaca"""
     hash=5381
     for i in range(len(s)):
         hash=hash*33 + ord(s[i])
     hash=hash%rozmiar
     return(hash)
 
-def hash_moja(s):       #moja funkcja haszujaca
+def hash_moja(s):
+    """moja, dowolna funkcja haszujaca"""
     prime=1000033
     hash=5381
     for i in range(len(s)):
@@ -73,7 +85,8 @@ def hash_moja(s):       #moja funkcja haszujaca
 
 
 
-def hash_insert_open(T, s, funkcja_h):      #wstawianie przy adresowaniu otwartym dla funkcji 1 lub 2
+def hash_insert_open(T, s, funkcja_h):
+    """wstawianie przy adresowaniu otwartym dla funkcji 1 lub 2"""
     global licznik
     i=0
     key = funkcja_h(s) %rozmiar  #generowanie klucza dla funkcji haszujacej okreslonej w argumencie
@@ -87,7 +100,8 @@ def hash_insert_open(T, s, funkcja_h):      #wstawianie przy adresowaniu otwarty
             licznik += 1
     print('error: przepelnienie')
 
-def hash_search_open(T, s, funkcja_h):      #szukanie przy adresowaniu otwartym dla funkcji 1 lub 2
+def hash_search_open(T, s, funkcja_h):
+    """szukanie przy adresowaniu otwartym dla funkcji 1 lub 2"""
     i=0
     key = funkcja_h(s) %rozmiar #generowanie klucza dla funkcji haszujacej okreslonej w argumencie
     while T[key+i] != None:
@@ -117,7 +131,8 @@ def hash_search_podwojne(T, s, funkcja_h):
     return None
 
 
-def srednia(funkcja_nr, sposob):     #funkcja liczaca srednia ilosc kolizji
+def srednia(funkcja_nr, sposob):
+    """funkcja liczaca srednia ilosc kolizji"""
 
     def funkcja_1(var1, funkcja_nr):
         global licznik
@@ -155,22 +170,32 @@ def srednia(funkcja_nr, sposob):     #funkcja liczaca srednia ilosc kolizji
     return(kolizje_avr)
 
 
-def odczyt(pliktxt):    #funkcja odczytujaca dane z pliku
+def odczyt(pliktxt):
+    """funkcja odczytujaca dane z pliku"""
     f = open(pliktxt, 'r')
     return f.read()
 
-def pause():    #funkcja pauzujaca program
-    input('')
 
-def zeruj():    #funkcja zerujaca glowna tablice
+def zeruj():
+    """funkcja zerujaca glowna tablice"""
     global T
     T=[None] * rozmiar
 
-def ilosc():    #funkcja liczaca ilosc elementow w tablicy
+def ilosc():
+    """funkcja liczaca ilosc elementow w tablicy"""
     return (len([x for x in T if x is not None]))
 
 
 if __name__== '__main__':
-    f= open('table.txt', 'w+')
+    f= open('table.txt', 'r')
+    filecontents = f.read().split()
+    f.close()
+    filecontents = [ None if x == "None" else x for x in filecontents]
+    if all(x is None for x in filecontents):
+        pass
+    else:
+        T= filecontents
     Main()
-    f.writelines(str(T))
+    f= open('table.txt', 'w')
+    for t in T:
+        f.write(str(t) +" ")
